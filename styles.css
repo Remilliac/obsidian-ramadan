@@ -1,0 +1,71 @@
+/* Simple calendar styles for the Ramadan 2026 plugin */
+.ramadan-view-container {
+  height: 100%;
+  box-sizing: border-box;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  overflow: auto;
+}
+
+.ramadan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ramadan-day {
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.ramadan-day .day-date {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-normal);
+}
+
+/* checkmark hidden by default; shown and centered when checked */
+.ramadan-day .checkmark {
+  display: none;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-on-accent);
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+}
+
+.ramadan-day.checked {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.ramadan-day.checked .checkmark {
+  display: block;
+  font-size: 44px;
+}
+
+/* hide the date text when the day is checked */
+.ramadan-day.checked .day-date {
+  display: none;
+}
+
+.ramadan-footer {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}

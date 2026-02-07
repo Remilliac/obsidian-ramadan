@@ -1,0 +1,11 @@
+{
+  "id": "ramadan-2026",
+  "name": "Ramadan 2026 Calendar",
+  "version": "0.1.0",
+  "minAppVersion": "0.12.0",
+  "description": "A simple calendar for Ramadan 2026 — click a day to mark it green with a check.",
+  "author": "Generated locally",
+  "main": "main.js",
+  "css": "styles.css",
+  "isDesktopOnly": false
+}
