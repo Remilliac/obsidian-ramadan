@@ -91,6 +91,13 @@ class RamadanView extends ItemView {
       this.renderGrid();
     });
 
+    // Progress bar container
+    this.progressContainer = this.containerEl.createEl('div', { cls: 'ramadan-progress-container' });
+    this.progressBar = this.progressContainer.createEl('div', { cls: 'ramadan-progress-bar' });
+    this.progressFill = this.progressBar.createEl('div', { cls: 'ramadan-progress-fill' });
+    const moonIcon = this.progressFill.createEl('div', { cls: 'ramadan-progress-icon', text: '☾' });
+    this.progressLabel = this.progressContainer.createEl('div', { cls: 'ramadan-progress-label' });
+
     this.gridEl = this.containerEl.createEl('div', { cls: 'ramadan-grid' });
     this.renderGrid();
   }
@@ -133,7 +140,17 @@ class RamadanView extends ItemView {
           day.removeClass('checked');
         }
         await this.plugin.saveSettings();
+        this.updateProgress();
       });
     }
+    // Update progress bar
+    this.updateProgress();
+  }
+
+  updateProgress() {
+    const checked = (this.plugin.settings.checkedDays || []).length;
+    const percentage = (checked / 30) * 100;
+    this.progressFill.style.width = percentage + '%';
+    this.progressLabel.setText(`${checked} / 30 days`);
   }
 }
