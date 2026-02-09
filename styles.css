@@ -49,6 +49,18 @@
   transform: translate(-50%, -50%);
 }
 
+/* X mark element */
+.ramadan-day .x-mark {
+  display: none;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-on-accent);
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+}
+
 .ramadan-day.checked {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
@@ -59,8 +71,24 @@
   font-size: 44px;
 }
 
+/* Double-checked state (red background, X mark) */
+.ramadan-day.double-checked {
+  background: #d32f2f;
+  color: white;
+}
+
+.ramadan-day.double-checked .x-mark {
+  display: block;
+  font-size: 44px;
+}
+
 /* hide the date text when the day is checked */
 .ramadan-day.checked .day-date {
+  display: none;
+}
+
+/* hide the date text when double-checked */
+.ramadan-day.double-checked .day-date {
   display: none;
 }
 

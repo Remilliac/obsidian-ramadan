@@ -5,7 +5,17 @@ const VIEW_TYPE = 'ramadan-calendar-view';
 module.exports = class RamadanPlugin extends Plugin {
   async onload() {
     console.log('Loading Ramadan 2026 Calendar plugin');
-    this.settings = Object.assign({ checkedDays: [], startDate: '2026-02-17' }, (await this.loadData()) || {});
+    this.settings = Object.assign({ dayStates: {}, startDate: '2026-02-17' }, (await this.loadData()) || {});
+
+    // Migrate old checkedDays format to new dayStates format
+    if (this.settings.checkedDays && Array.isArray(this.settings.checkedDays)) {
+      this.settings.dayStates = {};
+      this.settings.checkedDays.forEach(day => {
+        this.settings.dayStates[day] = 1; // 1 = checked (green)
+      });
+      delete this.settings.checkedDays;
+      await this.saveSettings();
+    }
 
     // Register a right-sidebar view
     this.registerView(VIEW_TYPE, (leaf) => new RamadanView(leaf, this));
@@ -124,21 +134,36 @@ class RamadanView extends ItemView {
 
       // create checkmark element (hidden by default via CSS)
       const check = day.createEl('div', { cls: 'checkmark', text: '\u2713' });
+      // create X element (hidden by default)
+      const xMark = day.createEl('div', { cls: 'x-mark', text: '✕' });
 
-      if ((this.plugin.settings.checkedDays || []).includes(i)) {
+      // Get the state: 0 = unchecked, 1 = checked (green), 2 = double-checked (red)
+      const state = parseInt(this.plugin.settings.dayStates[i]) || 0;
+      if (state === 1) {
         day.addClass('checked');
+      } else if (state === 2) {
+        day.addClass('double-checked');
       }
 
       day.addEventListener('click', async () => {
-        this.plugin.settings.checkedDays = this.plugin.settings.checkedDays || [];
-        const idx = this.plugin.settings.checkedDays.indexOf(i);
-        if (idx === -1) {
-          this.plugin.settings.checkedDays.push(i);
-          day.addClass('checked');
-        } else {
-          this.plugin.settings.checkedDays.splice(idx, 1);
+        this.plugin.settings.dayStates = this.plugin.settings.dayStates || {};
+        const currentState = parseInt(this.plugin.settings.dayStates[i]) || 0;
+        const nextState = (currentState + 1) % 3; // Cycle: 0 → 1 → 2 → 0
+
+        if (nextState === 0) {
+          delete this.plugin.settings.dayStates[i];
           day.removeClass('checked');
+          day.removeClass('double-checked');
+        } else if (nextState === 1) {
+          this.plugin.settings.dayStates[i] = 1;
+          day.removeClass('double-checked');
+          day.addClass('checked');
+        } else if (nextState === 2) {
+          this.plugin.settings.dayStates[i] = 2;
+          day.removeClass('checked');
+          day.addClass('double-checked');
         }
+
         await this.plugin.saveSettings();
         this.updateProgress();
       });
@@ -148,9 +173,15 @@ class RamadanView extends ItemView {
   }
 
   updateProgress() {
-    const checked = (this.plugin.settings.checkedDays || []).length;
-    const percentage = (checked / 30) * 100;
+    const dayStates = this.plugin.settings.dayStates || {};
+    let checkedCount = 0;
+    Object.values(dayStates).forEach(state => {
+      if (state === 1 || state === 2) {
+        checkedCount++;
+      }
+    });
+    const percentage = (checkedCount / 30) * 100;
     this.progressFill.style.width = percentage + '%';
-    this.progressLabel.setText(`${checked} / 30 days`);
+    this.progressLabel.setText(`${checkedCount} / 30 days`);
   }
 }
