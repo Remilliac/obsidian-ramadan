@@ -105,7 +105,14 @@ class RamadanView extends ItemView {
     this.progressContainer = this.containerEl.createEl('div', { cls: 'ramadan-progress-container' });
     this.progressBar = this.progressContainer.createEl('div', { cls: 'ramadan-progress-bar' });
     this.progressFill = this.progressBar.createEl('div', { cls: 'ramadan-progress-fill' });
-    const moonIcon = this.progressFill.createEl('div', { cls: 'ramadan-progress-icon', text: '☾' });
+    const moonIcon = this.progressFill.createEl('div', { cls: 'ramadan-progress-icon' });
+    // Use the same SVG as the ribbon icon
+    moonIcon.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
+        <path d="M16.5 4.5l.9 2.1L19.5 7l-2.1.4-.9 2.1-.9-2.1L14 7l2.1-.4.9-2.1z" fill="currentColor" />
+      </svg>
+    `;
     this.progressLabel = this.progressContainer.createEl('div', { cls: 'ramadan-progress-label' });
 
     this.gridEl = this.containerEl.createEl('div', { cls: 'ramadan-grid' });
