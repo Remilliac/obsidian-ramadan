@@ -249,24 +249,80 @@ class RamadanView extends ItemView {
   }
 
   getCoordinates(location) {
-    // Common city coordinates for Ramadan prayer times
+    // Major city coordinates for Ramadan prayer times
     const cities = {
-      'london,uk': { lat: 51.5074, lon: -0.1278 },
+      // USA
       'new york,usa': { lat: 40.7128, lon: -74.0060 },
-      'kissimmee,usa': { lat: 28.2906, lon: -81.3866 },
       'los angeles,usa': { lat: 34.0522, lon: -118.2437 },
       'chicago,usa': { lat: 41.8781, lon: -87.6298 },
       'houston,usa': { lat: 29.7604, lon: -95.3698 },
       'miami,usa': { lat: 25.7617, lon: -80.1918 },
+      'kissimmee,usa': { lat: 28.2906, lon: -81.3866 },
+      'denver,usa': { lat: 39.7392, lon: -104.9903 },
+      'phoenix,usa': { lat: 33.4484, lon: -112.0742 },
+      'san francisco,usa': { lat: 37.7749, lon: -122.4194 },
+      'seattle,usa': { lat: 47.6062, lon: -122.3321 },
+      'dallas,usa': { lat: 32.7767, lon: -96.7970 },
+      // Canada
+      'toronto,canada': { lat: 43.6532, lon: -79.3832 },
+      'vancouver,canada': { lat: 49.2827, lon: -123.1207 },
+      'montreal,canada': { lat: 45.5017, lon: -73.5673 },
+      // UK & Ireland
+      'london,uk': { lat: 51.5074, lon: -0.1278 },
+      'dublin,ireland': { lat: 53.3498, lon: -6.2603 },
+      // Europe
+      'paris,france': { lat: 48.8566, lon: 2.3522 },
+      'berlin,germany': { lat: 52.5200, lon: 13.4050 },
+      'madrid,spain': { lat: 40.4168, lon: -3.7038 },
+      'rome,italy': { lat: 41.9028, lon: 12.4964 },
+      'amsterdam,netherlands': { lat: 52.3676, lon: 4.9041 },
+      // Middle East
       'dubai,uae': { lat: 25.2048, lon: 55.2708 },
-      'cairo,egypt': { lat: 30.0444, lon: 31.2357 },
+      'abu dhabi,uae': { lat: 24.4539, lon: 54.3773 },
+      'doha,qatar': { lat: 25.2854, lon: 51.5310 },
+      'kuwait city,kuwait': { lat: 29.3759, lon: 47.9774 },
+      'riyadh,saudi arabia': { lat: 24.7136, lon: 46.6753 },
+      'jeddah,saudi arabia': { lat: 21.5433, lon: 39.1727 },
       'medina,saudi arabia': { lat: 24.4672, lon: 39.6028 },
       'mecca,saudi arabia': { lat: 21.4225, lon: 39.8262 },
-      'istanbul,turkey': { lat: 41.0082, lon: 28.9784 },
-      'toronto,canada': { lat: 43.6532, lon: -79.3832 },
-      'sydney,australia': { lat: -33.8688, lon: 151.2093 },
+      'beirut,lebanon': { lat: 33.8886, lon: 35.4955 },
+      'baghdad,iraq': { lat: 33.3128, lon: 44.3615 },
+      'tehran,iran': { lat: 35.6892, lon: 51.3890 },
+      // Egypt
+      'cairo,egypt': { lat: 30.0444, lon: 31.2357 },
+      'alexandria,egypt': { lat: 31.2001, lon: 29.9187 },
+      'giza,egypt': { lat: 30.0131, lon: 31.2089 },
+      // Africa
+      'lagos,nigeria': { lat: 6.5244, lon: 3.3792 },
+      'johannesburg,south africa': { lat: -26.2023, lon: 28.0436 },
+      'cape town,south africa': { lat: -33.9249, lon: 18.4241 },
+      'nairobi,kenya': { lat: -1.2921, lon: 36.8219 },
+      'casablanca,morocco': { lat: 33.5731, lon: -7.5898 },
+      // South Asia
+      'delhi,india': { lat: 28.6139, lon: 77.2090 },
+      'mumbai,india': { lat: 19.0760, lon: 72.8777 },
+      'karachi,pakistan': { lat: 24.8607, lon: 67.0011 },
+      'lahore,pakistan': { lat: 31.5204, lon: 74.3587 },
+      'dhaka,bangladesh': { lat: 23.8103, lon: 90.4125 },
+      // Southeast Asia
+      'bangkok,thailand': { lat: 13.7563, lon: 100.5018 },
+      'jakarta,indonesia': { lat: -6.2088, lon: 106.8456 },
       'singapore,singapore': { lat: 1.3521, lon: 103.8198 },
-      'kuala lumpur,malaysia': { lat: 3.1390, lon: 101.6869 }
+      'kuala lumpur,malaysia': { lat: 3.1390, lon: 101.6869 },
+      'manila,philippines': { lat: 14.5994, lon: 120.9842 },
+      'ho chi minh city,vietnam': { lat: 10.8231, lon: 106.6297 },
+      // East Asia
+      'hong kong': { lat: 22.3193, lon: 114.1694 },
+      'tokyo,japan': { lat: 35.6762, lon: 139.6503 },
+      'seoul,south korea': { lat: 37.5665, lon: 126.9780 },
+      'beijing,china': { lat: 39.9042, lon: 116.4074 },
+      'shanghai,china': { lat: 31.2304, lon: 121.4737 },
+      // Turkey
+      'istanbul,turkey': { lat: 41.0082, lon: 28.9784 },
+      // Australia & Pacific
+      'sydney,australia': { lat: -33.8688, lon: 151.2093 },
+      'melbourne,australia': { lat: -37.8136, lon: 144.9631 },
+      'auckland,new zealand': { lat: -37.0882, lon: 174.7765 }
     };
 
     const key = (location || 'london,uk').toLowerCase().trim();
@@ -275,22 +331,78 @@ class RamadanView extends ItemView {
 
   getAllCities() {
     return [
-      'London,UK',
+      // USA
       'New York,USA',
-      'Kissimmee,USA',
       'Los Angeles,USA',
       'Chicago,USA',
       'Houston,USA',
       'Miami,USA',
+      'Kissimmee,USA',
+      'Denver,USA',
+      'Phoenix,USA',
+      'San Francisco,USA',
+      'Seattle,USA',
+      'Dallas,USA',
+      // Canada
+      'Toronto,Canada',
+      'Vancouver,Canada',
+      'Montreal,Canada',
+      // UK & Ireland
+      'London,UK',
+      'Dublin,Ireland',
+      // Europe
+      'Paris,France',
+      'Berlin,Germany',
+      'Madrid,Spain',
+      'Rome,Italy',
+      'Amsterdam,Netherlands',
+      // Middle East
       'Dubai,UAE',
-      'Cairo,Egypt',
+      'Abu Dhabi,UAE',
+      'Doha,Qatar',
+      'Kuwait City,Kuwait',
+      'Riyadh,Saudi Arabia',
+      'Jeddah,Saudi Arabia',
       'Medina,Saudi Arabia',
       'Mecca,Saudi Arabia',
-      'Istanbul,Turkey',
-      'Toronto,Canada',
-      'Sydney,Australia',
+      'Beirut,Lebanon',
+      'Baghdad,Iraq',
+      'Tehran,Iran',
+      // Egypt
+      'Cairo,Egypt',
+      'Alexandria,Egypt',
+      'Giza,Egypt',
+      // Africa
+      'Lagos,Nigeria',
+      'Johannesburg,South Africa',
+      'Cape Town,South Africa',
+      'Nairobi,Kenya',
+      'Casablanca,Morocco',
+      // South Asia
+      'Delhi,India',
+      'Mumbai,India',
+      'Karachi,Pakistan',
+      'Lahore,Pakistan',
+      'Dhaka,Bangladesh',
+      // Southeast Asia
+      'Bangkok,Thailand',
+      'Jakarta,Indonesia',
       'Singapore,Singapore',
-      'Kuala Lumpur,Malaysia'
+      'Kuala Lumpur,Malaysia',
+      'Manila,Philippines',
+      'Ho Chi Minh City,Vietnam',
+      // East Asia
+      'Hong Kong',
+      'Tokyo,Japan',
+      'Seoul,South Korea',
+      'Beijing,China',
+      'Shanghai,China',
+      // Turkey
+      'Istanbul,Turkey',
+      // Australia & Pacific
+      'Sydney,Australia',
+      'Melbourne,Australia',
+      'Auckland,New Zealand'
     ];
   }
 
