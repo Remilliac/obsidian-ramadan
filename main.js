@@ -253,6 +253,11 @@ class RamadanView extends ItemView {
     const cities = {
       'london,uk': { lat: 51.5074, lon: -0.1278 },
       'new york,usa': { lat: 40.7128, lon: -74.0060 },
+      'kissimmee,usa': { lat: 28.2906, lon: -81.3866 },
+      'los angeles,usa': { lat: 34.0522, lon: -118.2437 },
+      'chicago,usa': { lat: 41.8781, lon: -87.6298 },
+      'houston,usa': { lat: 29.7604, lon: -95.3698 },
+      'miami,usa': { lat: 25.7617, lon: -80.1918 },
       'dubai,uae': { lat: 25.2048, lon: 55.2708 },
       'cairo,egypt': { lat: 30.0444, lon: 31.2357 },
       'medina,saudi arabia': { lat: 24.4672, lon: 39.6028 },
@@ -272,6 +277,11 @@ class RamadanView extends ItemView {
     return [
       'London,UK',
       'New York,USA',
+      'Kissimmee,USA',
+      'Los Angeles,USA',
+      'Chicago,USA',
+      'Houston,USA',
+      'Miami,USA',
       'Dubai,UAE',
       'Cairo,Egypt',
       'Medina,Saudi Arabia',
