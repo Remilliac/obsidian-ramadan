@@ -37,6 +37,13 @@
   color: var(--text-normal);
 }
 
+.ramadan-day .day-times {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* checkmark hidden by default; shown and centered when checked */
 .ramadan-day .checkmark {
   display: none;
@@ -87,8 +94,16 @@
   display: none;
 }
 
+.ramadan-day.checked .day-times {
+  display: none;
+}
+
 /* hide the date text when double-checked */
 .ramadan-day.double-checked .day-date {
+  display: none;
+}
+
+.ramadan-day.double-checked .day-times {
   display: none;
 }
 

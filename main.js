@@ -139,6 +139,18 @@ class RamadanView extends ItemView {
       const dateStr = months[d.getMonth()] + ' ' + d.getDate();
       day.createEl('div', { cls: 'day-date', text: dateStr });
 
+      // Fetch and display prayer times
+      const timeEl = day.createEl('div', { cls: 'day-times', text: 'Loading...' });
+      this.fetchPrayerTimes(d).then(times => {
+        if (times) {
+          timeEl.setText(`${times.sehri} ~ ${times.iftar}`);
+        } else {
+          timeEl.setText('--');
+        }
+      }).catch(() => {
+        timeEl.setText('--');
+      });
+
       // create checkmark element (hidden by default via CSS)
       const check = day.createEl('div', { cls: 'checkmark', text: '\u2713' });
       // create X element (hidden by default)
@@ -177,6 +189,49 @@ class RamadanView extends ItemView {
     }
     // Update progress bar
     this.updateProgress();
+  }
+
+  async fetchPrayerTimes(date) {
+    try {
+      // Format date as YYYY-MM-DD
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
+      // Try Islamic Finder API - using their public calendar endpoint
+      // Note: We use a CORS-friendly approach with the Islamic Finder API
+      const response = await fetch(`https://www.islamicfinder.org/api/prayers/calendar?date=${dateStr}&country=US&state=CA`);
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch from Islamic Finder');
+        return null;
+      }
+
+      const data = await response.json();
+      
+      // Extract Sehri (Fajr) and Iftar (Maghrib) times
+      if (data && data.data && data.data[0]) {
+        const prayer = data.data[0];
+        const sehri = prayer.fajr ? this.formatTime(prayer.fajr) : '--';
+        const iftar = prayer.maghrib ? this.formatTime(prayer.maghrib) : '--';
+        return { sehri, iftar };
+      }
+      return null;
+    } catch (err) {
+      console.warn('Error fetching prayer times:', err);
+      return null;
+    }
+  }
+
+  formatTime(timeStr) {
+    // Convert time string (HH:MM or similar) to simple format
+    if (!timeStr) return '--';
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`;
+    }
+    return timeStr;
   }
 
   updateProgress() {
