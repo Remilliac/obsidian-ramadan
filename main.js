@@ -5,7 +5,7 @@ const VIEW_TYPE = 'ramadan-calendar-view';
 module.exports = class RamadanPlugin extends Plugin {
   async onload() {
     console.log('Loading Ramadan 2026 Calendar plugin');
-    this.settings = Object.assign({ dayStates: {}, startDate: '2026-02-17' }, (await this.loadData()) || {});
+    this.settings = Object.assign({ dayStates: {}, startDate: '2026-02-17', location: 'London,UK' }, (await this.loadData()) || {});
 
     // Migrate old checkedDays format to new dayStates format
     if (this.settings.checkedDays && Array.isArray(this.settings.checkedDays)) {
@@ -101,6 +101,19 @@ class RamadanView extends ItemView {
       this.renderGrid();
     });
 
+    // Location input
+    const locationRow = this.containerEl.createEl('div', { cls: 'ramadan-settings' });
+    locationRow.createEl('label', { text: 'Location: ' });
+    const locationInput = locationRow.createEl('input');
+    locationInput.type = 'text';
+    locationInput.placeholder = 'City, Country (e.g., London,UK)';
+    locationInput.value = this.plugin.settings.location || 'London,UK';
+    locationInput.addEventListener('change', async (e) => {
+      this.plugin.settings.location = e.target.value;
+      await this.plugin.saveSettings();
+      this.renderGrid();
+    });
+
     // Progress bar container
     this.progressContainer = this.containerEl.createEl('div', { cls: 'ramadan-progress-container' });
     this.progressBar = this.progressContainer.createEl('div', { cls: 'ramadan-progress-bar' });
@@ -191,30 +204,54 @@ class RamadanView extends ItemView {
     this.updateProgress();
   }
 
+  getCoordinates(location) {
+    // Common city coordinates for Ramadan prayer times
+    const cities = {
+      'london,uk': { lat: 51.5074, lon: -0.1278 },
+      'new york,usa': { lat: 40.7128, lon: -74.0060 },
+      'dubai,uae': { lat: 25.2048, lon: 55.2708 },
+      'cairo,egypt': { lat: 30.0444, lon: 31.2357 },
+      'medina,saudi arabia': { lat: 24.4672, lon: 39.6028 },
+      'mecca,saudi arabia': { lat: 21.4225, lon: 39.8262 },
+      'istanbul,turkey': { lat: 41.0082, lon: 28.9784 },
+      'toronto,canada': { lat: 43.6532, lon: -79.3832 },
+      'sydney,australia': { lat: -33.8688, lon: 151.2093 },
+      'singapore,singapore': { lat: 1.3521, lon: 103.8198 },
+      'kuala lumpur,malaysia': { lat: 3.1390, lon: 101.6869 }
+    };
+
+    const key = (location || 'london,uk').toLowerCase().trim();
+    return cities[key] || { lat: 51.5074, lon: -0.1278 }; // Default to London
+  }
+
   async fetchPrayerTimes(date) {
     try {
-      // Format date as YYYY-MM-DD
+      // Format date as DD-MM-YYYY for Aladhan API
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      const dateStr = `${day}-${month}-${year}`;
 
-      // Try Islamic Finder API - using their public calendar endpoint
-      // Note: We use a CORS-friendly approach with the Islamic Finder API
-      const response = await fetch(`https://www.islamicfinder.org/api/prayers/calendar?date=${dateStr}&country=US&state=CA`);
+      // Get coordinates for the location
+      const coords = this.getCoordinates(this.plugin.settings.location);
+
+      // Use Aladhan API (reliable, no auth required, CORS-enabled)
+      const response = await fetch(
+        `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${coords.lat}&longitude=${coords.lon}&method=2`
+      );
       
       if (!response.ok) {
-        console.warn('Failed to fetch from Islamic Finder');
+        console.warn('Failed to fetch from Aladhan API');
         return null;
       }
 
       const data = await response.json();
       
       // Extract Sehri (Fajr) and Iftar (Maghrib) times
-      if (data && data.data && data.data[0]) {
-        const prayer = data.data[0];
-        const sehri = prayer.fajr ? this.formatTime(prayer.fajr) : '--';
-        const iftar = prayer.maghrib ? this.formatTime(prayer.maghrib) : '--';
+      if (data && data.data && data.data.timings) {
+        const timings = data.data.timings;
+        const sehri = timings.Fajr ? this.formatTime(timings.Fajr) : '--';
+        const iftar = timings.Maghrib ? this.formatTime(timings.Maghrib) : '--';
         return { sehri, iftar };
       }
       return null;
@@ -225,7 +262,7 @@ class RamadanView extends ItemView {
   }
 
   formatTime(timeStr) {
-    // Convert time string (HH:MM or similar) to simple format
+    // Convert time string (HH:MM or HH:MM:SS) to simple HH:MM format
     if (!timeStr) return '--';
     const parts = timeStr.split(':');
     if (parts.length >= 2) {
