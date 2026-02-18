@@ -1,4 +1,4 @@
-const { Plugin, ItemView } = require('obsidian');
+const { Plugin, ItemView, Notice } = require('obsidian');
 
 const VIEW_TYPE = 'ramadan-calendar-view';
 
@@ -51,201 +51,111 @@ module.exports = class RamadanPlugin extends Plugin {
       // ignore if we can't set innerHTML for some reason
       console.warn('Failed to set custom ribbon SVG', e);
     }
+
+    this.scheduleNextIftarNotification();
   }
 
   onunload() {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE);
+    this.clearNotificationTimer();
     console.log('Unloading Ramadan 2026 Calendar plugin');
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
   }
-};
 
-class RamadanView extends ItemView {
-  constructor(leaf, plugin) {
-    super(leaf);
-    this.plugin = plugin;
-  }
-
-  getViewType() {
-    return VIEW_TYPE;
-  }
-
-  getDisplayText() {
-    return 'Ramadan 2026';
-  }
-
-  // return an icon name for the workspace toolbar (uses Obsidian built-in icons)
-  getIcon() {
-    return 'moon';
-  }
-
-  async onOpen() {
-    this.containerEl.empty();
-    // add a class to scope styles to this view
-    this.containerEl.addClass('ramadan-view-container');
-
-    const header = this.containerEl.createEl('div', { cls: 'view-header' });
-    header.createEl('h3', { text: 'Ramadan 2026 — 30 Days' });
-
-    const startInputRow = this.containerEl.createEl('div', { cls: 'ramadan-settings' });
-    startInputRow.createEl('label', { text: 'Start date: ' });
-    const startInput = startInputRow.createEl('input');
-    startInput.type = 'date';
-    startInput.value = this.plugin.settings.startDate || '2026-02-17';
-    startInput.addEventListener('change', async (e) => {
-      this.plugin.settings.startDate = e.target.value;
-      await this.plugin.saveSettings();
-      this.renderGrid();
-    });
-
-    // Location input with dropdown
-    const locationRow = this.containerEl.createEl('div', { cls: 'ramadan-location-container' });
-    locationRow.createEl('label', { text: 'Location: ' });
-    
-    const inputWrapper = locationRow.createEl('div', { cls: 'ramadan-location-input-wrapper' });
-    const locationInput = inputWrapper.createEl('input');
-    locationInput.type = 'text';
-    locationInput.placeholder = 'Search city...';
-    locationInput.value = this.plugin.settings.location || 'London,UK';
-    locationInput.classList.add('ramadan-location-input');
-    
-    const dropdown = inputWrapper.createEl('div', { cls: 'ramadan-location-dropdown' });
-    
-    // Get all available cities
-    const allCities = this.getAllCities();
-    
-    // Function to show filtered dropdown
-    const updateDropdown = () => {
-      const query = locationInput.value.toLowerCase();
-      dropdown.empty();
-      
-      if (!query) {
-        dropdown.style.display = 'none';
-        return;
-      }
-      
-      const filtered = allCities.filter(city => 
-        city.toLowerCase().includes(query)
-      ).slice(0, 8); // Show max 8 matches
-      
-      if (filtered.length === 0) {
-        dropdown.style.display = 'none';
-        return;
-      }
-      
-      dropdown.style.display = 'block';
-      filtered.forEach(city => {
-        const option = dropdown.createEl('div', { cls: 'ramadan-location-option', text: city });
-        option.addEventListener('click', async () => {
-          locationInput.value = city;
-          this.plugin.settings.location = city;
-          await this.plugin.saveSettings();
-          dropdown.style.display = 'none';
-          this.renderGrid();
-        });
-      });
-    };
-    
-    locationInput.addEventListener('input', updateDropdown);
-    locationInput.addEventListener('focus', updateDropdown);
-    locationInput.addEventListener('blur', () => {
-      // Delay to allow click on dropdown items
-      setTimeout(() => {
-        dropdown.style.display = 'none';
-      }, 200);
-    });
-
-    // Progress bar container
-    this.progressContainer = this.containerEl.createEl('div', { cls: 'ramadan-progress-container' });
-    this.progressBar = this.progressContainer.createEl('div', { cls: 'ramadan-progress-bar' });
-    this.progressFill = this.progressBar.createEl('div', { cls: 'ramadan-progress-fill' });
-    const moonIcon = this.progressFill.createEl('div', { cls: 'ramadan-progress-icon' });
-    // Use the same SVG as the ribbon icon
-    moonIcon.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
-        <path d="M16.5 4.5l.9 2.1L19.5 7l-2.1.4-.9 2.1-.9-2.1L14 7l2.1-.4.9-2.1z" fill="currentColor" />
-      </svg>
-    `;
-    this.progressLabel = this.progressContainer.createEl('div', { cls: 'ramadan-progress-label' });
-
-    this.gridEl = this.containerEl.createEl('div', { cls: 'ramadan-grid' });
-    this.renderGrid();
-  }
-
-  onClose() {
-    this.containerEl.empty();
-  }
-
-  renderGrid() {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    this.gridEl.empty();
-    const startDateStr = this.plugin.settings.startDate || '2026-02-17';
-    const base = new Date(startDateStr + 'T00:00:00');
-
-    for (let i = 1; i <= 30; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + (i - 1));
-
-      const day = this.gridEl.createEl('div', { cls: 'ramadan-day' });
-      day.setAttr('data-day', String(i));
-
-      const dateStr = months[d.getMonth()] + ' ' + d.getDate();
-      day.createEl('div', { cls: 'day-date', text: dateStr });
-
-      // Fetch and display prayer times
-      const timeEl = day.createEl('div', { cls: 'day-times', text: 'Loading...' });
-      this.fetchPrayerTimes(d).then(times => {
-        if (times) {
-          timeEl.setText(`${times.sehri} ~ ${times.iftar}`);
-        } else {
-          timeEl.setText('--');
-        }
-      }).catch(() => {
-        timeEl.setText('--');
-      });
-
-      // create checkmark element (hidden by default via CSS)
-      const check = day.createEl('div', { cls: 'checkmark', text: '\u2713' });
-      // create X element (hidden by default)
-      const xMark = day.createEl('div', { cls: 'x-mark', text: '✕' });
-
-      // Get the state: 0 = unchecked, 1 = checked (green), 2 = double-checked (red)
-      const state = parseInt(this.plugin.settings.dayStates[i]) || 0;
-      if (state === 1) {
-        day.addClass('checked');
-      } else if (state === 2) {
-        day.addClass('double-checked');
-      }
-
-      day.addEventListener('click', async () => {
-        this.plugin.settings.dayStates = this.plugin.settings.dayStates || {};
-        const currentState = parseInt(this.plugin.settings.dayStates[i]) || 0;
-        const nextState = (currentState + 1) % 3; // Cycle: 0 → 1 → 2 → 0
-
-        if (nextState === 0) {
-          delete this.plugin.settings.dayStates[i];
-          day.removeClass('checked');
-          day.removeClass('double-checked');
-        } else if (nextState === 1) {
-          this.plugin.settings.dayStates[i] = 1;
-          day.removeClass('double-checked');
-          day.addClass('checked');
-        } else if (nextState === 2) {
-          this.plugin.settings.dayStates[i] = 2;
-          day.removeClass('checked');
-          day.addClass('double-checked');
-        }
-
-        await this.plugin.saveSettings();
-        this.updateProgress();
-      });
+  clearNotificationTimer() {
+    if (this.notificationTimer) {
+      clearTimeout(this.notificationTimer);
+      this.notificationTimer = null;
     }
-    // Update progress bar
-    this.updateProgress();
+  }
+
+  async scheduleNextIftarNotification() {
+    this.clearNotificationTimer();
+
+    const now = new Date();
+    const startDateStr = this.settings.startDate || '2026-02-17';
+    const startDate = new Date(startDateStr + 'T00:00:00');
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayIndex = Math.floor((today - startDate) / 86400000);
+
+    if (dayIndex < 0 || dayIndex >= 30) {
+      return;
+    }
+
+    for (let offset = 0; offset < 2; offset++) {
+      const targetIndex = dayIndex + offset;
+      if (targetIndex >= 30) {
+        return;
+      }
+
+      const targetDate = new Date(startDate);
+      targetDate.setDate(startDate.getDate() + targetIndex);
+
+      const times = await this.fetchPrayerTimes(targetDate);
+      if (!times || !times.iftar || times.iftar === '--') {
+        continue;
+      }
+
+      const notifyAt = this.buildDateTime(targetDate, times.iftar);
+      if (!notifyAt || notifyAt <= now) {
+        continue;
+      }
+
+      const delay = notifyAt.getTime() - now.getTime();
+      this.notificationTimer = setTimeout(() => {
+        this.showIftarNotification(targetDate, times.iftar);
+        this.scheduleNextIftarNotification();
+      }, delay);
+      return;
+    }
+  }
+
+  buildDateTime(date, timeStr) {
+    if (!timeStr || timeStr === '--') {
+      return null;
+    }
+    const parts = timeStr.split(':');
+    if (parts.length < 2) {
+      return null;
+    }
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      return null;
+    }
+    const result = new Date(date);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
+  }
+
+  showIftarNotification(date, iftarTime) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateLabel = `${months[date.getMonth()]} ${date.getDate()}`;
+    const title = 'Iftar time';
+    const body = `Ramadan fast ends at ${iftarTime} for ${dateLabel}.`;
+
+    if (typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+        return;
+      }
+
+      if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, { body });
+          } else {
+            new Notice(body);
+          }
+        });
+        return;
+      }
+    }
+
+    new Notice(body);
   }
 
   getCoordinates(location) {
@@ -415,7 +325,7 @@ class RamadanView extends ItemView {
       const dateStr = `${day}-${month}-${year}`;
 
       // Get coordinates for the location
-      const coords = this.getCoordinates(this.plugin.settings.location);
+      const coords = this.getCoordinates(this.settings.location);
 
       // Use Aladhan API (reliable, no auth required, CORS-enabled)
       const response = await fetch(
@@ -451,6 +361,194 @@ class RamadanView extends ItemView {
       return `${parts[0]}:${parts[1]}`;
     }
     return timeStr;
+  }
+};
+
+class RamadanView extends ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+  }
+
+  getViewType() {
+    return VIEW_TYPE;
+  }
+
+  getDisplayText() {
+    return 'Ramadan 2026';
+  }
+
+  // return an icon name for the workspace toolbar (uses Obsidian built-in icons)
+  getIcon() {
+    return 'moon';
+  }
+
+  async onOpen() {
+    this.containerEl.empty();
+    // add a class to scope styles to this view
+    this.containerEl.addClass('ramadan-view-container');
+
+    const header = this.containerEl.createEl('div', { cls: 'view-header' });
+    header.createEl('h3', { text: 'Ramadan 2026 — 30 Days' });
+
+    const startInputRow = this.containerEl.createEl('div', { cls: 'ramadan-settings' });
+    startInputRow.createEl('label', { text: 'Start date: ' });
+    const startInput = startInputRow.createEl('input');
+    startInput.type = 'date';
+    startInput.value = this.plugin.settings.startDate || '2026-02-17';
+    startInput.addEventListener('change', async (e) => {
+      this.plugin.settings.startDate = e.target.value;
+      await this.plugin.saveSettings();
+      this.renderGrid();
+      this.plugin.scheduleNextIftarNotification();
+    });
+
+    // Location input with dropdown
+    const locationRow = this.containerEl.createEl('div', { cls: 'ramadan-location-container' });
+    locationRow.createEl('label', { text: 'Location: ' });
+    
+    const inputWrapper = locationRow.createEl('div', { cls: 'ramadan-location-input-wrapper' });
+    const locationInput = inputWrapper.createEl('input');
+    locationInput.type = 'text';
+    locationInput.placeholder = 'Search city...';
+    locationInput.value = this.plugin.settings.location || 'London,UK';
+    locationInput.classList.add('ramadan-location-input');
+    
+    const dropdown = inputWrapper.createEl('div', { cls: 'ramadan-location-dropdown' });
+    
+    // Get all available cities
+    const allCities = this.plugin.getAllCities();
+    
+    // Function to show filtered dropdown
+    const updateDropdown = () => {
+      const query = locationInput.value.toLowerCase();
+      dropdown.empty();
+      
+      if (!query) {
+        dropdown.style.display = 'none';
+        return;
+      }
+      
+      const filtered = allCities.filter(city => 
+        city.toLowerCase().includes(query)
+      ).slice(0, 8); // Show max 8 matches
+      
+      if (filtered.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+      }
+      
+      dropdown.style.display = 'block';
+      filtered.forEach(city => {
+        const option = dropdown.createEl('div', { cls: 'ramadan-location-option', text: city });
+        option.addEventListener('click', async () => {
+          locationInput.value = city;
+          this.plugin.settings.location = city;
+          await this.plugin.saveSettings();
+          dropdown.style.display = 'none';
+          this.renderGrid();
+          this.plugin.scheduleNextIftarNotification();
+        });
+      });
+    };
+    
+    locationInput.addEventListener('input', updateDropdown);
+    locationInput.addEventListener('focus', updateDropdown);
+    locationInput.addEventListener('blur', () => {
+      // Delay to allow click on dropdown items
+      setTimeout(() => {
+        dropdown.style.display = 'none';
+      }, 200);
+    });
+
+    // Progress bar container
+    this.progressContainer = this.containerEl.createEl('div', { cls: 'ramadan-progress-container' });
+    this.progressBar = this.progressContainer.createEl('div', { cls: 'ramadan-progress-bar' });
+    this.progressFill = this.progressBar.createEl('div', { cls: 'ramadan-progress-fill' });
+    const moonIcon = this.progressFill.createEl('div', { cls: 'ramadan-progress-icon' });
+    // Use the same SVG as the ribbon icon
+    moonIcon.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
+        <path d="M16.5 4.5l.9 2.1L19.5 7l-2.1.4-.9 2.1-.9-2.1L14 7l2.1-.4.9-2.1z" fill="currentColor" />
+      </svg>
+    `;
+    this.progressLabel = this.progressContainer.createEl('div', { cls: 'ramadan-progress-label' });
+
+    this.gridEl = this.containerEl.createEl('div', { cls: 'ramadan-grid' });
+    this.renderGrid();
+  }
+
+  onClose() {
+    this.containerEl.empty();
+  }
+
+  renderGrid() {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    this.gridEl.empty();
+    const startDateStr = this.plugin.settings.startDate || '2026-02-17';
+    const base = new Date(startDateStr + 'T00:00:00');
+
+    for (let i = 1; i <= 30; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + (i - 1));
+
+      const day = this.gridEl.createEl('div', { cls: 'ramadan-day' });
+      day.setAttr('data-day', String(i));
+
+      const dateStr = months[d.getMonth()] + ' ' + d.getDate();
+      day.createEl('div', { cls: 'day-date', text: dateStr });
+
+      // Fetch and display prayer times
+      const timeEl = day.createEl('div', { cls: 'day-times', text: 'Loading...' });
+      this.plugin.fetchPrayerTimes(d).then(times => {
+        if (times) {
+          timeEl.setText(`${times.sehri} ~ ${times.iftar}`);
+        } else {
+          timeEl.setText('--');
+        }
+      }).catch(() => {
+        timeEl.setText('--');
+      });
+
+      // create checkmark element (hidden by default via CSS)
+      const check = day.createEl('div', { cls: 'checkmark', text: '\u2713' });
+      // create X element (hidden by default)
+      const xMark = day.createEl('div', { cls: 'x-mark', text: '✕' });
+
+      // Get the state: 0 = unchecked, 1 = checked (green), 2 = double-checked (red)
+      const state = parseInt(this.plugin.settings.dayStates[i]) || 0;
+      if (state === 1) {
+        day.addClass('checked');
+      } else if (state === 2) {
+        day.addClass('double-checked');
+      }
+
+      day.addEventListener('click', async () => {
+        this.plugin.settings.dayStates = this.plugin.settings.dayStates || {};
+        const currentState = parseInt(this.plugin.settings.dayStates[i]) || 0;
+        const nextState = (currentState + 1) % 3; // Cycle: 0 → 1 → 2 → 0
+
+        if (nextState === 0) {
+          delete this.plugin.settings.dayStates[i];
+          day.removeClass('checked');
+          day.removeClass('double-checked');
+        } else if (nextState === 1) {
+          this.plugin.settings.dayStates[i] = 1;
+          day.removeClass('double-checked');
+          day.addClass('checked');
+        } else if (nextState === 2) {
+          this.plugin.settings.dayStates[i] = 2;
+          day.removeClass('checked');
+          day.addClass('double-checked');
+        }
+
+        await this.plugin.saveSettings();
+        this.updateProgress();
+      });
+    }
+    // Update progress bar
+    this.updateProgress();
   }
 
   updateProgress() {
