@@ -101,17 +101,61 @@ class RamadanView extends ItemView {
       this.renderGrid();
     });
 
-    // Location input
-    const locationRow = this.containerEl.createEl('div', { cls: 'ramadan-settings' });
+    // Location input with dropdown
+    const locationRow = this.containerEl.createEl('div', { cls: 'ramadan-location-container' });
     locationRow.createEl('label', { text: 'Location: ' });
-    const locationInput = locationRow.createEl('input');
+    
+    const inputWrapper = locationRow.createEl('div', { cls: 'ramadan-location-input-wrapper' });
+    const locationInput = inputWrapper.createEl('input');
     locationInput.type = 'text';
-    locationInput.placeholder = 'City, Country (e.g., London,UK)';
+    locationInput.placeholder = 'Search city...';
     locationInput.value = this.plugin.settings.location || 'London,UK';
-    locationInput.addEventListener('change', async (e) => {
-      this.plugin.settings.location = e.target.value;
-      await this.plugin.saveSettings();
-      this.renderGrid();
+    locationInput.classList.add('ramadan-location-input');
+    
+    const dropdown = inputWrapper.createEl('div', { cls: 'ramadan-location-dropdown' });
+    
+    // Get all available cities
+    const allCities = this.getAllCities();
+    
+    // Function to show filtered dropdown
+    const updateDropdown = () => {
+      const query = locationInput.value.toLowerCase();
+      dropdown.empty();
+      
+      if (!query) {
+        dropdown.style.display = 'none';
+        return;
+      }
+      
+      const filtered = allCities.filter(city => 
+        city.toLowerCase().includes(query)
+      ).slice(0, 8); // Show max 8 matches
+      
+      if (filtered.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+      }
+      
+      dropdown.style.display = 'block';
+      filtered.forEach(city => {
+        const option = dropdown.createEl('div', { cls: 'ramadan-location-option', text: city });
+        option.addEventListener('click', async () => {
+          locationInput.value = city;
+          this.plugin.settings.location = city;
+          await this.plugin.saveSettings();
+          dropdown.style.display = 'none';
+          this.renderGrid();
+        });
+      });
+    };
+    
+    locationInput.addEventListener('input', updateDropdown);
+    locationInput.addEventListener('focus', updateDropdown);
+    locationInput.addEventListener('blur', () => {
+      // Delay to allow click on dropdown items
+      setTimeout(() => {
+        dropdown.style.display = 'none';
+      }, 200);
     });
 
     // Progress bar container
@@ -222,6 +266,22 @@ class RamadanView extends ItemView {
 
     const key = (location || 'london,uk').toLowerCase().trim();
     return cities[key] || { lat: 51.5074, lon: -0.1278 }; // Default to London
+  }
+
+  getAllCities() {
+    return [
+      'London,UK',
+      'New York,USA',
+      'Dubai,UAE',
+      'Cairo,Egypt',
+      'Medina,Saudi Arabia',
+      'Mecca,Saudi Arabia',
+      'Istanbul,Turkey',
+      'Toronto,Canada',
+      'Sydney,Australia',
+      'Singapore,Singapore',
+      'Kuala Lumpur,Malaysia'
+    ];
   }
 
   async fetchPrayerTimes(date) {

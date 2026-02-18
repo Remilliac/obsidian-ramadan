@@ -16,6 +16,70 @@
   margin-top: 8px;
 }
 
+/* Location input with dropdown styles */
+.ramadan-location-container {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ramadan-location-container label {
+  font-size: 12px;
+  color: var(--text-normal);
+}
+
+.ramadan-location-input-wrapper {
+  position: relative;
+}
+
+.ramadan-location-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.ramadan-location-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.ramadan-location-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+}
+
+.ramadan-location-option {
+  padding: 8px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-normal);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ramadan-location-option:last-child {
+  border-bottom: none;
+}
+
+.ramadan-location-option:hover {
+  background: var(--background-modifier-hover);
+}
+
 .ramadan-day {
   border: 1px solid var(--background-modifier-border);
   background: transparent;
