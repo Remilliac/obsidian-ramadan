@@ -52,7 +52,7 @@ module.exports = class RamadanPlugin extends Plugin {
       console.warn('Failed to set custom ribbon SVG', e);
     }
 
-    this.scheduleNextIftarNotification();
+    this.scheduleNextPrayerNotification();
   }
 
   onunload() {
@@ -72,45 +72,67 @@ module.exports = class RamadanPlugin extends Plugin {
     }
   }
 
-  async scheduleNextIftarNotification() {
+  async scheduleNextPrayerNotification() {
     this.clearNotificationTimer();
 
+    const MAX_TIMEOUT_MS = 2147483647;
     const now = new Date();
     const startDateStr = this.settings.startDate || '2026-02-17';
     const startDate = new Date(startDateStr + 'T00:00:00');
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const dayIndex = Math.floor((today - startDate) / 86400000);
 
-    if (dayIndex < 0 || dayIndex >= 30) {
+    if (dayIndex >= 30) {
       return;
     }
 
     for (let offset = 0; offset < 2; offset++) {
       const targetIndex = dayIndex + offset;
-      if (targetIndex >= 30) {
-        return;
+      if (targetIndex < 0 || targetIndex >= 30) {
+        continue;
       }
 
       const targetDate = new Date(startDate);
       targetDate.setDate(startDate.getDate() + targetIndex);
 
       const times = await this.fetchPrayerTimes(targetDate);
-      if (!times || !times.iftar || times.iftar === '--') {
+      if (!times) {
         continue;
       }
 
-      const notifyAt = this.buildDateTime(targetDate, times.iftar);
-      if (!notifyAt || notifyAt <= now) {
-        continue;
-      }
+      const prayerTimes = [
+        { name: 'Fajr', time: times.fajr },
+        { name: 'Dhuhr', time: times.dhuhr },
+        { name: 'Asr', time: times.asr },
+        { name: 'Maghrib', time: times.maghrib },
+        { name: 'Isha', time: times.isha }
+      ];
 
-      const delay = notifyAt.getTime() - now.getTime();
-      this.notificationTimer = setTimeout(() => {
-        this.showIftarNotification(targetDate, times.iftar);
-        this.scheduleNextIftarNotification();
-      }, delay);
-      return;
+      for (const prayer of prayerTimes) {
+        const notifyAt = this.buildDateTime(targetDate, prayer.time);
+        if (!notifyAt || notifyAt <= now) {
+          continue;
+        }
+
+        const delay = notifyAt.getTime() - now.getTime();
+        if (delay > MAX_TIMEOUT_MS) {
+          this.notificationTimer = setTimeout(() => {
+            this.scheduleNextPrayerNotification();
+          }, MAX_TIMEOUT_MS);
+          return;
+        }
+
+        this.notificationTimer = setTimeout(() => {
+          this.showPrayerNotification(prayer.name, prayer.time, targetDate);
+          this.scheduleNextPrayerNotification();
+        }, delay);
+        return;
+      }
     }
+
+    this.notificationTimer = setTimeout(() => {
+      this.scheduleNextPrayerNotification();
+    }, 30 * 60 * 1000);
   }
 
   buildDateTime(date, timeStr) {
@@ -131,11 +153,11 @@ module.exports = class RamadanPlugin extends Plugin {
     return result;
   }
 
-  showIftarNotification(date, iftarTime) {
+  showPrayerNotification(prayerName, prayerTime, date) {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const dateLabel = `${months[date.getMonth()]} ${date.getDate()}`;
-    const title = 'Iftar time';
-    const body = `Ramadan fast ends at ${iftarTime} for ${dateLabel}.`;
+    const title = `${prayerName} prayer time`;
+    const body = `${prayerName} is at ${prayerTime} for ${dateLabel}.`;
 
     if (typeof Notification !== 'undefined') {
       if (Notification.permission === 'granted') {
@@ -339,12 +361,17 @@ module.exports = class RamadanPlugin extends Plugin {
 
       const data = await response.json();
       
-      // Extract Sehri (Fajr) and Iftar (Maghrib) times
+      // Extract core prayer times and keep Sehri/Iftar aliases for the grid
       if (data && data.data && data.data.timings) {
         const timings = data.data.timings;
-        const sehri = timings.Fajr ? this.formatTime(timings.Fajr) : '--';
-        const iftar = timings.Maghrib ? this.formatTime(timings.Maghrib) : '--';
-        return { sehri, iftar };
+        const fajr = timings.Fajr ? this.formatTime(timings.Fajr) : '--';
+        const dhuhr = timings.Dhuhr ? this.formatTime(timings.Dhuhr) : '--';
+        const asr = timings.Asr ? this.formatTime(timings.Asr) : '--';
+        const maghrib = timings.Maghrib ? this.formatTime(timings.Maghrib) : '--';
+        const isha = timings.Isha ? this.formatTime(timings.Isha) : '--';
+        const sehri = fajr;
+        const iftar = maghrib;
+        return { fajr, dhuhr, asr, maghrib, isha, sehri, iftar };
       }
       return null;
     } catch (err) {
@@ -400,7 +427,7 @@ class RamadanView extends ItemView {
       this.plugin.settings.startDate = e.target.value;
       await this.plugin.saveSettings();
       this.renderGrid();
-      this.plugin.scheduleNextIftarNotification();
+      this.plugin.scheduleNextPrayerNotification();
     });
 
     // Location input with dropdown
@@ -447,7 +474,7 @@ class RamadanView extends ItemView {
           await this.plugin.saveSettings();
           dropdown.style.display = 'none';
           this.renderGrid();
-          this.plugin.scheduleNextIftarNotification();
+          this.plugin.scheduleNextPrayerNotification();
         });
       });
     };
