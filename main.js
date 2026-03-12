@@ -5,7 +5,12 @@ const VIEW_TYPE = 'ramadan-calendar-view';
 module.exports = class RamadanPlugin extends Plugin {
   async onload() {
     console.log('Loading Ramadan 2026 Calendar plugin');
-    this.settings = Object.assign({ dayStates: {}, startDate: '2026-02-17', location: 'London,UK' }, (await this.loadData()) || {});
+    this.settings = Object.assign({
+      dayStates: {},
+      startDate: '2026-02-17',
+      location: 'London,UK',
+      prayerNotificationsEnabled: true
+    }, (await this.loadData()) || {});
 
     // Migrate old checkedDays format to new dayStates format
     if (this.settings.checkedDays && Array.isArray(this.settings.checkedDays)) {
@@ -74,6 +79,10 @@ module.exports = class RamadanPlugin extends Plugin {
 
   async scheduleNextPrayerNotification() {
     this.clearNotificationTimer();
+
+    if (this.settings.prayerNotificationsEnabled === false) {
+      return;
+    }
 
     const MAX_TIMEOUT_MS = 2147483647;
     const now = new Date();
@@ -473,6 +482,7 @@ class RamadanView extends ItemView {
           this.plugin.settings.location = city;
           await this.plugin.saveSettings();
           dropdown.style.display = 'none';
+          this.renderTodayPrayerTimes();
           this.renderGrid();
           this.plugin.scheduleNextPrayerNotification();
         });
@@ -487,6 +497,28 @@ class RamadanView extends ItemView {
         dropdown.style.display = 'none';
       }, 200);
     });
+
+    const todayPrayerSection = this.containerEl.createEl('div', { cls: 'ramadan-today-prayers-container' });
+    const todayPrayerHeader = todayPrayerSection.createEl('div', { cls: 'ramadan-today-prayers-header' });
+    todayPrayerHeader.createEl('div', { cls: 'ramadan-today-prayers-title', text: "Today's Prayer Times" });
+
+    const notifyControl = todayPrayerHeader.createEl('div', { cls: 'ramadan-notify-toggle-row' });
+    notifyControl.createEl('span', { cls: 'ramadan-notify-toggle-label', text: 'Prayer notifications' });
+
+    const toggleSwitch = notifyControl.createEl('label', { cls: 'ramadan-toggle-switch' });
+    const toggleInput = toggleSwitch.createEl('input');
+    toggleInput.type = 'checkbox';
+    toggleInput.checked = this.plugin.settings.prayerNotificationsEnabled !== false;
+    toggleSwitch.createEl('span', { cls: 'ramadan-toggle-slider' });
+
+    toggleInput.addEventListener('change', async () => {
+      this.plugin.settings.prayerNotificationsEnabled = toggleInput.checked;
+      await this.plugin.saveSettings();
+      this.plugin.scheduleNextPrayerNotification();
+    });
+
+    this.todayPrayerTimesEl = todayPrayerSection.createEl('div', { cls: 'ramadan-today-prayers-list', text: 'Loading...' });
+    this.renderTodayPrayerTimes();
 
     // Progress bar container
     this.progressContainer = this.containerEl.createEl('div', { cls: 'ramadan-progress-container' });
@@ -508,6 +540,40 @@ class RamadanView extends ItemView {
 
   onClose() {
     this.containerEl.empty();
+  }
+
+  async renderTodayPrayerTimes() {
+    if (!this.todayPrayerTimesEl) {
+      return;
+    }
+
+    this.todayPrayerTimesEl.empty();
+    this.todayPrayerTimesEl.setText('Loading...');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const times = await this.plugin.fetchPrayerTimes(today);
+
+    this.todayPrayerTimesEl.empty();
+
+    if (!times) {
+      this.todayPrayerTimesEl.setText('--');
+      return;
+    }
+
+    const prayers = [
+      { name: 'Fajr', time: times.fajr || '--' },
+      { name: 'Dhuhr', time: times.dhuhr || '--' },
+      { name: 'Asr', time: times.asr || '--' },
+      { name: 'Maghrib', time: times.maghrib || '--' },
+      { name: 'Isha', time: times.isha || '--' }
+    ];
+
+    prayers.forEach(prayer => {
+      const chip = this.todayPrayerTimesEl.createEl('div', { cls: 'ramadan-prayer-chip' });
+      chip.createEl('span', { cls: 'ramadan-prayer-name', text: prayer.name });
+      chip.createEl('span', { cls: 'ramadan-prayer-time', text: prayer.time });
+    });
   }
 
   renderGrid() {

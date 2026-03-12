@@ -177,6 +177,112 @@
   color: var(--text-muted);
 }
 
+.ramadan-today-prayers-container {
+  margin-top: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+
+.ramadan-today-prayers-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ramadan-today-prayers-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.ramadan-notify-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ramadan-notify-toggle-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ramadan-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+}
+
+.ramadan-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ramadan-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--background-modifier-border);
+  transition: 0.2s;
+  border-radius: 999px;
+}
+
+.ramadan-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  top: 2px;
+  background-color: var(--text-on-accent);
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.ramadan-toggle-switch input:checked + .ramadan-toggle-slider {
+  background-color: var(--interactive-accent);
+}
+
+.ramadan-toggle-switch input:checked + .ramadan-toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.ramadan-today-prayers-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ramadan-prayer-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  background: var(--background-primary);
+}
+
+.ramadan-prayer-name {
+  color: var(--text-muted);
+}
+
+.ramadan-prayer-time {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
 /* Progress bar styles */
 .ramadan-progress-container {
   margin-top: 12px;
